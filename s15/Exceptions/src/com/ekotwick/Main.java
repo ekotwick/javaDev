@@ -27,6 +27,7 @@ public class Main {
             }
         }
         if(isValid) {
+
             return Integer.parseInt(input);
         }
         return 0;
