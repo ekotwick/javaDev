@@ -38,28 +38,39 @@ public class Locations implements Map<Integer, Location> {
 
     // notice that there's no need to parse the data; we can read directly;
     static {
-        try(DataInputStream locFile = new DataInputStream(new BufferedInputStream(new FileInputStream("locations.dat")))) {
+        try(ObjectInputStream locFile = new ObjectInputStream(new BufferedInputStream(new FileInputStream("locations.dat")))) {
             // the EOFexception is an exception thrown when we run out of lines to read in a file; hence we use it to terminate our loop; hence it also allows us to avoid running into problems where other exceptions would break out loop.
             boolean eof = false;
             while(!eof) {
                 try {
-                    Map<String, Integer> exits = new LinkedHashMap<>();
-                    int locId = locFile.readInt();
-                    String description = locFile.readUTF();
-                    int numExists = locFile.readInt();
-                    System.out.println("Read location " + locId + " : " + description);
-                    System.out.println("Found " + numExists + " exits");
-                    for(int i = 0; i < numExists; i++) {
-                        String direction = locFile.readUTF();
-                        int destination = locFile.readInt();
-                        exits.put(direction, destination);
-                        System.out.println("\t\t" + direction + "," + destination);
-                    }
-                    locations.put(locId, new Location(locId, description, exits));
+                    Location location = (Location) locFile.readObject();
+                    System.out.println("Read location " + location.getLocationID() + " : " + location.getDescription());
+                    System.out.println("Found " + location.getExits().size() + " exits");
+
+                    locations.put(location.getLocationID(), location);
                 } catch(EOFException e) {
                     eof = true;
                 }
             }
+//            while(!eof) {
+//                try {
+//                    Map<String, Integer> exits = new LinkedHashMap<>();
+//                    int locId = locFile.readInt();
+//                    String description = locFile.readUTF();
+//                    int numExists = locFile.readInt();
+//                    System.out.println("Read location " + locId + " : " + description);
+//                    System.out.println("Found " + numExists + " exits");
+//                    for(int i = 0; i < numExists; i++) {
+//                        String direction = locFile.readUTF();
+//                        int destination = locFile.readInt();
+//                        exits.put(direction, destination);
+//                        System.out.println("\t\t" + direction + "," + destination);
+//                    }
+//                    locations.put(locId, new Location(locId, description, exits));
+//                } catch(EOFException e) {
+//                    eof = true;
+//                }
+//            }
         } catch(IOException io) {
             System.out.println("IO exception");
         }
