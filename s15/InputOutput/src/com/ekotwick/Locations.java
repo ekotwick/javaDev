@@ -38,40 +38,78 @@ public class Locations implements Map<Integer, Location> {
 //        }
     }
     // this is the static initialization block
+    // CHALLENGE: TURN THIS STATIC INITIALIZATION BLOCK INTO A TRY WITH RESOURCES USING JAVA 7
+//    static {
+//        Scanner scanner = null; // reminder to initialize it as `null` in order to catch it in the `finally` block
+//        try {
+//            scanner = new Scanner(new FileReader("locations_big.txt"));
+//            scanner.useDelimiter(",");
+//            while(scanner.hasNextLine()) {
+//                int loc = scanner.nextInt();
+//                scanner.skip(scanner.delimiter());
+//                String description = scanner.nextLine();
+//                System.out.println("Imported loc: " + loc + ": " + description);
+//                Map<String, Integer> tempExit = new HashMap<>();
+//                locations.put(loc, new Location(loc, description, tempExit));
+//            }
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        } finally {
+//            if(scanner != null) {
+//                scanner.close();
+//            }
+//        }
+//
+//        try {
+//            scanner = new Scanner(new BufferedReader(new FileReader("directions_big.txt")));
+//            scanner.useDelimiter(",");
+//            while(scanner.hasNextLine()) {
+//                // ONE WAY TO DO IT
+////                int loc = scanner.nextInt();
+////                scanner.skip(scanner.delimiter()); // we have to skip the delimiter to go to the next piece of data
+////                String direction = scanner.next();
+////                scanner.skip(scanner.delimiter());
+////                String dest = scanner.nextLine();
+////                int destination = Integer.parseInt(dest);
+//                // ANOTHER WAY TO DO IT
+//                String input = scanner.nextLine();
+//                String[] data = input.split(",");
+//                int loc = Integer.parseInt(data[0]);
+//                String direction = data[1];
+//                int destination = Integer.parseInt(data[2]);
+//
+//                System.out.println(loc + ": " + direction + ": " + destination);
+//                Location location = locations.get(loc);
+//                location.addExit(direction, destination);
+//            }
+//        } catch(IOException e) {
+//            e.printStackTrace();
+//        } finally {
+//            if(scanner != null) {
+//                scanner.close(); // the file reader is passed to the bufferedReader's constructor, which is passed to the Scanner's constructor; this is by design; closing the scanner will close the buffered reader (can look into the source code for evidence)
+//            }
+//        }
+//    }
+
     static {
-        Scanner scanner = null; // reminder to initialize it as `null` in order to catch it in the `finally` block
-        try {
-            scanner = new Scanner(new FileReader("locations_big.txt"));
+        try(Scanner scanner = new Scanner(new FileReader("locations_big.txt"))) {
             scanner.useDelimiter(",");
             while(scanner.hasNextLine()) {
                 int loc = scanner.nextInt();
                 scanner.skip(scanner.delimiter());
-                String description = scanner.nextLine();
+                String description = scanner.next();
                 System.out.println("Imported loc: " + loc + ": " + description);
                 Map<String, Integer> tempExit = new HashMap<>();
                 locations.put(loc, new Location(loc, description, tempExit));
             }
         } catch (IOException e) {
             e.printStackTrace();
-        } finally {
-            if(scanner != null) {
-                scanner.close();
-            }
         }
-
-        try {
-            scanner = new Scanner(new BufferedReader(new FileReader("directions_big.txt")));
-            scanner.useDelimiter(",");
-            while(scanner.hasNextLine()) {
-                // ONE WAY TO DO IT
-//                int loc = scanner.nextInt();
-//                scanner.skip(scanner.delimiter()); // we have to skip the delimiter to go to the next piece of data
-//                String direction = scanner.next();
-//                scanner.skip(scanner.delimiter());
-//                String dest = scanner.nextLine();
-//                int destination = Integer.parseInt(dest);
-                // ANOTHER WAY TO DO IT
-                String input = scanner.nextLine();
+        // here we remove the scanner altogether and work with the BufferedReader
+        // but notice that we could dispense with the Scanner here, because the `try with resources` takes care of a checked exception of using the BufferedReader class, which we would have to have caught in a catch block if we didn't use this strategy
+        try(BufferedReader dirFile = new BufferedReader(new FileReader("directions_big.txt"))){
+            String input;
+            while((input = dirFile.readLine()) != null) {
                 String[] data = input.split(",");
                 int loc = Integer.parseInt(data[0]);
                 String direction = data[1];
@@ -80,13 +118,10 @@ public class Locations implements Map<Integer, Location> {
                 System.out.println(loc + ": " + direction + ": " + destination);
                 Location location = locations.get(loc);
                 location.addExit(direction, destination);
+
             }
         } catch(IOException e) {
             e.printStackTrace();
-        } finally {
-            if(scanner != null) {
-                scanner.close(); // the file reader is passed to the bufferedReader's constructor, which is passed to the Scanner's constructor; this is by design; closing the scanner will close the buffered reader (can look into the source code for evidence)
-            }
         }
     }
 
