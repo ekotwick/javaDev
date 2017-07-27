@@ -1,12 +1,10 @@
 package com.ekotwick;
 
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Created by ekotwick on 7/26/17.
@@ -16,9 +14,14 @@ public class Locations implements Map<Integer, Location> {
     private static Map<Integer, Location> locations = new HashMap<Integer, Location>();
 
     public static void main(String[] args) throws IOException {
-        try (FileWriter locFile = new FileWriter("locations.txt")) {
+        try (FileWriter locFile = new FileWriter("locations.txt");
+             FileWriter dirFile = new FileWriter("directions.txt")
+        ) {
             for(Location location : locations.values()) {
                 locFile.write(location.getLocationID() + " " + location.getDescription() + "\n");
+                for(String direction : location.getExits().keySet()) {
+                    dirFile.write(location.getLocationID() + "," + direction + "," + location.getExits().get(direction) + "\n");
+                }
             }
         }
 //        FileWriter localFile = null;
@@ -39,11 +42,25 @@ public class Locations implements Map<Integer, Location> {
     }
     // this is the static initialization block
     static {
-        locations.put(0, new Location(0, "You are sitting in front of a computer learning Java"));
-        locations.put(1, new Location(1, "You are standing at the end of a road before a small brick building"));
-        locations.put(2, new Location(2, "You are at the top of a hill"));
-        locations.put(3, new Location(3, "You are inside a building, a well house for a small spring"));
-        locations.put(4, new Location(4, "You are in a valley beside a stream"));
+        Scanner scanner = null; // reminder to initialize it as `null` in order to catch it in the `finally` block
+        try {
+            scanner = new Scanner(new FileReader("locations.txt"));
+            scanner.useDelimiter(",");
+            while(scanner.hasNextLine()) {
+                int loc = scanner.nextInt();
+                scanner.skip(scanner.delimiter());
+                String description = scanner.nextLine();
+                System.out.println("Imported loc: " + loc + ": " + description);
+                Map<String, Integer> tempExit = new HashMap<>();
+                locations.put(loc, new Location(loc, description, tempExit));
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            if(scanner != null) {
+                scanner.close();
+            }
+        }
     }
     @Override
     public int size() {
