@@ -8,12 +8,51 @@ import java.util.*;
  */
 public class Locations implements Map<Integer, Location> {
     private static Map<Integer, Location> locations = new LinkedHashMap<Integer, Location>();
+    private static Map<Integer, IndexRecord> index = new LinkedHashMap<>();
+    private static RandomAccessFile ra;
 
     public static void main(String[] args) throws IOException {
-        try (ObjectOutputStream locFile = new ObjectOutputStream(new BufferedOutputStream(new FileOutputStream("locations.dat")))) {
+        try (RandomAccessFile rao = new RandomAccessFile("locations_random.dat", "rwd")) {
+            rao.writeInt(locations.size());
+            int indexSize = locations.size() * 3 * Integer.BYTES; // here we have to calculate how large the index size will be; we multiply by '3' because there will be three things stored (id, offset, and size of record), then we multply all that by the size of an integer in BYTES.
+            int locationStart = (int) (indexSize + rao.getFilePointer() + Integer.BYTES); // this gives us the offset for the location section
+            rao.writeInt(locationStart);
+            // now we write the index; but we write this only after we have written the locations, because each index record requires the offset location, which we don't know until we've written the location
+            long indexStart = rao.getFilePointer();
+            // now we can write teh locations. We have the offset, which we will assign to a variable, which is updated after writing each location; then we loop through the locations, write each location, create an index for it, and add the index record to a map. all this requires a class in its own right
+
+            int startPointer = locationStart; // this is the offset; we use it to calculate a record's length once we've written it to file
+            rao.seek(startPointer); // this moves the pointer to the first location's offset; we do this only for the first location, because afterwards we write the data sequentially
+
             for(Location location : locations.values()) {
-                locFile.writeObject(location);
+                rao.writeInt(location.getLocationID());
+                rao.writeUTF(location.getDescription());
+                StringBuilder builder = new StringBuilder();
+                for(String direction : location.getExits().keySet()) {
+                    if(!direction.equalsIgnoreCase("Q")) {
+                        builder.append(direction);
+                        builder.append(",");
+                        builder.append(location.getExits().get(direction));
+                        builder.append((","));
+                        // direction. locationId, direction, locationId (this is how the file is getting written)
+                        // the string ends with a trailing comma; if we were diligent, we wouldn't include it (though it is harmless in this case)
+                    }
+                }
+                rao.writeUTF(builder.toString());
+
+                IndexRecord record = new IndexRecord(startPointer, (int) (rao.getFilePointer() - startPointer));
+                index.put(location.getLocationID(), record);
+
+                startPointer = (int) rao.getFilePointer();
             }
+
+            rao.seek(indexStart);
+            for(Integer locationID : index.keySet()) {
+                rao.writeInt(locationID);
+                rao.writeInt(index.get(locationID).getStartByte());
+                rao.writeInt(index.get(locationID).getLength());
+            }
+
         }
 
     }
@@ -25,26 +64,21 @@ public class Locations implements Map<Integer, Location> {
 
 
     static {
+        try {
+            ra = new RandomAccessFile("locations_rand.dat", "rwd");
+            int numLocations = ra.readInt(); // it's good practice to write this, though it isn't currently being used
+            long locationStartPoint = ra.readInt();
 
-        try(ObjectInputStream locFile = new ObjectInputStream(new BufferedInputStream(new FileInputStream("locations.dat")))) {
-            boolean eof = false;
-            while (!eof) {
-                try {
-                    Location location = (Location) locFile.readObject();
-                    System.out.println("Read location " + location.getLocationID() + " : " + location.getDescription());
-                    System.out.println("Found " + location.getExits().size() + " exits");
+            while(ra.getFilePointer() < locationStartPoint) {
+                int locationId = ra.readInt();
+                int locationStart = ra.readInt();
+                int locationLength = ra.readInt();
 
-                    locations.put(location.getLocationID(), location);
-                } catch (EOFException e) {
-                    eof = true;
-                }
+                IndexRecord record = new IndexRecord(locationStart, locationLength);
+                index.put(locationId, record);
             }
-        } catch(InvalidClassException e) {
-            System.out.println("InvalidClassException " + e.getMessage());
-        } catch(IOException io) {
-            System.out.println("IO Exception " + io.getMessage());
-        } catch(ClassNotFoundException e) {
-            System.out.println("ClassNotFoundException " + e.getMessage());
+        } catch(IOException e) {
+            System.out.println("IOException in static initializer: " + e.getMessage());
         }
     }
 
