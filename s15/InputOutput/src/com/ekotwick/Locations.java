@@ -1,9 +1,6 @@
 package com.ekotwick;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 /**
@@ -44,7 +41,7 @@ public class Locations implements Map<Integer, Location> {
     static {
         Scanner scanner = null; // reminder to initialize it as `null` in order to catch it in the `finally` block
         try {
-            scanner = new Scanner(new FileReader("locations.txt"));
+            scanner = new Scanner(new FileReader("locations_big.txt"));
             scanner.useDelimiter(",");
             while(scanner.hasNextLine()) {
                 int loc = scanner.nextInt();
@@ -61,7 +58,38 @@ public class Locations implements Map<Integer, Location> {
                 scanner.close();
             }
         }
+
+        try {
+            scanner = new Scanner(new BufferedReader(new FileReader("directions_big.txt")));
+            scanner.useDelimiter(",");
+            while(scanner.hasNextLine()) {
+                // ONE WAY TO DO IT
+//                int loc = scanner.nextInt();
+//                scanner.skip(scanner.delimiter()); // we have to skip the delimiter to go to the next piece of data
+//                String direction = scanner.next();
+//                scanner.skip(scanner.delimiter());
+//                String dest = scanner.nextLine();
+//                int destination = Integer.parseInt(dest);
+                // ANOTHER WAY TO DO IT
+                String input = scanner.nextLine();
+                String[] data = input.split(",");
+                int loc = Integer.parseInt(data[0]);
+                String direction = data[1];
+                int destination = Integer.parseInt(data[2]);
+
+                System.out.println(loc + ": " + direction + ": " + destination);
+                Location location = locations.get(loc);
+                location.addExit(direction, destination);
+            }
+        } catch(IOException e) {
+            e.printStackTrace();
+        } finally {
+            if(scanner != null) {
+                scanner.close(); // the file reader is passed to the bufferedReader's constructor, which is passed to the Scanner's constructor; this is by design; closing the scanner will close the buffered reader (can look into the source code for evidence)
+            }
+        }
     }
+
     @Override
     public int size() {
         return locations.size();
