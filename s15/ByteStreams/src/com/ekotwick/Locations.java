@@ -29,37 +29,32 @@ public class Locations implements Map<Integer, Location> {
         }
     }
 
+    // notice that there's no need to parse the data; we can read directly;
     static {
-        try(Scanner scanner = new Scanner(new BufferedReader(new FileReader("locations_big.txt")))) {
-            scanner.useDelimiter(",");
-            while(scanner.hasNextLine()) {
-                int loc = scanner.nextInt();
-                scanner.skip(scanner.delimiter());
-                String description = scanner.next();
-                System.out.println("Imported loc: " + loc + ": " + description);
-                Map<String, Integer> tempExit = new HashMap<>();
-                locations.put(loc, new Location(loc, description, tempExit));
+        try(DataInputStream locFile = new DataInputStream(new BufferedInputStream(new FileInputStream("locations.dat")))) {
+            // the EOFexception is an exception thrown when we run out of lines to read in a file; hence we use it to terminate our loop; hence it also allows us to avoid running into problems where other exceptions would break out loop.
+            boolean eof = false;
+            while(!eof) {
+                try {
+                    Map<String, Integer> exits = new LinkedHashMap<>();
+                    int locId = locFile.readInt();
+                    String description = locFile.readUTF();
+                    int numExists = locFile.readInt();
+                    System.out.println("Read location " + locId + " : " + description);
+                    System.out.println("Found " + numExists + " exits");
+                    for(int i = 0; i < numExists; i++) {
+                        String direction = locFile.readUTF();
+                        int destination = locFile.readInt();
+                        exits.put(direction, destination);
+                        System.out.println("\t\t" + direction + "," + destination);
+                    }
+                    locations.put(locId, new Location(locId, description, exits));
+                } catch(EOFException e) {
+                    eof = true;
+                }
             }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        // here we remove the scanner altogether and work with the BufferedReader
-        // but notice that we could dispense with the Scanner here, because the `try with resources` takes care of a checked exception of using the BufferedReader class, which we would have to have caught in a catch block if we didn't use this strategy
-        try(BufferedReader dirFile = new BufferedReader(new FileReader("directions_big.txt"))){
-            String input;
-            while((input = dirFile.readLine()) != null) {
-                String[] data = input.split(",");
-                int loc = Integer.parseInt(data[0]);
-                String direction = data[1];
-                int destination = Integer.parseInt(data[2]);
-
-                System.out.println(loc + ": " + direction + ": " + destination);
-                Location location = locations.get(loc);
-                location.addExit(direction, destination);
-
-            }
-        } catch(IOException e) {
-            e.printStackTrace();
+        } catch(IOException io) {
+            System.out.println("IO exception");
         }
     }
 
