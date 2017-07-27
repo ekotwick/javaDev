@@ -8,11 +8,11 @@ import java.util.*;
  */
 // we are implementing an interface here, and when we do that, it is required that we implement all the methods of that interface. To help us out, IntelliJ provides a set of functions to implement, just hit `option + enter` and then select `implement`, then fill out. Since we are implementing a Map, our locations methods should look just like regular Map functions.
 public class Locations implements Map<Integer, Location> {
-    private static Map<Integer, Location> locations = new HashMap<Integer, Location>();
+    private static Map<Integer, Location> locations = new LinkedHashMap<Integer, Location>();
 
     public static void main(String[] args) throws IOException {
-        try (FileWriter locFile = new FileWriter("locations.txt");
-             FileWriter dirFile = new FileWriter("directions.txt")
+        try (BufferedWriter locFile = new BufferedWriter(new FileWriter("locations.txt"));
+             BufferedWriter dirFile = new BufferedWriter(new FileWriter("directions.txt"))
         ) {
             for (Location location : locations.values()) {
                 locFile.write(location.getLocationID() + " " + location.getDescription() + "\n");
@@ -24,7 +24,7 @@ public class Locations implements Map<Integer, Location> {
     }
 
     static {
-        try(Scanner scanner = new Scanner(new FileReader("locations_big.txt"))) {
+        try(Scanner scanner = new Scanner(new BufferedReader(new FileReader("locations_big.txt")))) {
             scanner.useDelimiter(",");
             while(scanner.hasNextLine()) {
                 int loc = scanner.nextInt();
