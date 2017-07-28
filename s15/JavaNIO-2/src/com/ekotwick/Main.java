@@ -1,7 +1,9 @@
 package com.ekotwick;
 
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -12,8 +14,33 @@ import java.util.List;
 public class Main {
 
     public static void main(String[] args) {
+
+        try (FileOutputStream binFile = new FileOutputStream("data.dat");
+             FileChannel binChannel = binFile.getChannel()) {
+
+            byte[] outputBytes = "Hello World!".getBytes();
+            ByteBuffer buffer = ByteBuffer.wrap(outputBytes); // the wrap method wraps the byte array into the buffer; it sets the buffer position to zero; the buffer's capacity will be set to the array length; and the buffer mark will be undefined
+            int numBytes = binChannel.write(buffer);
+            System.out.println("numBytes written was: " + numBytes);
+
+            ByteBuffer intBuffer = ByteBuffer.allocate(Integer.BYTES); // `Integer.BYTES` is the number of bytes in an integer
+            intBuffer.putInt(245);
+            intBuffer.flip(); // this resets the position of the buffer to zero
+            numBytes = binChannel.write(intBuffer);
+            System.out.println("numBytes written was: " + numBytes);
+
+            intBuffer.flip();
+            intBuffer.putInt(-98765);
+            intBuffer.flip();
+            numBytes = binChannel.write(intBuffer);
+            System.out.println("numBytes written was: " + numBytes);
+
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+
 	    try {
-	        // this way of doing this is too complicated(?), so we do it differently
+            // this way of doing this is too complicated(?), so we do it differently
 //            FileInputStream file = new FileInputStream("data.txt");
 //            FileChannel channel = file.getChannel();
             Path dataPath = FileSystems.getDefault().getPath("data.txt");
