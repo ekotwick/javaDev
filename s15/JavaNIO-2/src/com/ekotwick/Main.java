@@ -3,6 +3,7 @@ package com.ekotwick;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.file.FileSystems;
@@ -35,6 +36,14 @@ public class Main {
             numBytes = binChannel.write(intBuffer);
             System.out.println("numBytes written was: " + numBytes);
 
+
+            RandomAccessFile ra = new RandomAccessFile("data.dat", "rwd");
+            FileChannel channel = ra.getChannel();
+            outputBytes[0] = 'a';
+            outputBytes[1] = 'b';
+            buffer.flip(); // without this, the buffer will print out the changes caused from the immediately above 2 lines; with flip(), this doesn't happen
+            long numBytesRead = channel.read(buffer);
+            System.out.println("outputBytes = " + new String(outputBytes));
         } catch(IOException e) {
             e.printStackTrace();
         }
