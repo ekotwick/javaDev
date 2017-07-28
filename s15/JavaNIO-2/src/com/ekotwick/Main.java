@@ -41,7 +41,7 @@ public class Main {
             FileChannel channel = ra.getChannel();
             outputBytes[0] = 'a';
             outputBytes[1] = 'b';
-            buffer.flip(); // without this, the buffer will print out the changes caused from the immediately above 2 lines; with flip(), this doesn't happen
+            buffer.flip(); // without this, the buffer will print out the changes caused from the immediately above 2 lines; with flip
             long numBytesRead = channel.read(buffer);
             System.out.println("outputBytes = " + new String(outputBytes));
         } catch(IOException e) {
