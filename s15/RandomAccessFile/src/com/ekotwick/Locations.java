@@ -82,6 +82,30 @@ public class Locations implements Map<Integer, Location> {
         }
     }
 
+    // the locations are no longer being stored in memory, so what we will need to do is look up a directions set everytime the player goes to a new location; we write that method here
+    public Location getLocation(int locationID) throws IOException {
+        IndexRecord record = index.get(locationID);
+        ra.seek(record.getStartByte());
+        int id = ra.readInt();
+        String description = ra.readUTF();
+        String exits = ra.readUTF();
+        String[] exitPart = new String(exits).split(",");
+
+        Location location = new Location(locationID, description, null);
+
+        if(locationID != 0) {
+            for(int i = 0; i < exitPart.length; i++) {
+                System.out.println("exitPart = " + exitPart[1]);
+                System.out.println("exitPart[+1] = " + exitPart[i+1]);
+                String direction = exitPart[i];
+                int destination = Integer.parseInt(exitPart[++i]);
+                location.addExit(direction, destination);
+            }
+        }
+
+        return location;
+    }
+
     @Override
     public int size() {
         return locations.size();
@@ -141,5 +165,9 @@ public class Locations implements Map<Integer, Location> {
     @Override
     public Set<Entry<Integer, Location>> entrySet() {
         return locations.entrySet();
+    }
+
+    public void close() throws IOException {
+        ra.close();
     }
 }
