@@ -14,6 +14,16 @@ public class Locations implements Map<Integer, Location> {
 
     public static void main(String[] args) throws IOException {
         // the only thing that's different here from the Java.io package is how we create the buffered writer.
+
+        /*
+                FOR WRITING OBJECTS:
+        */
+        /*
+            Path locPath = FileSystems.getDefault().getPath("locations.dat");
+            try(ObjectOutputStream locFile = new ObjectOutputStream(new BufferedOutputStream(Files.newOutputStream(locPath)))){
+                // same code as ever before
+            }
+         */
         Path locPath = FileSystems.getDefault().getPath("locations_big.txt");
         Path dirPath = FileSystems.getDefault().getPath("directions_big.txt");
         try (BufferedWriter locFile = Files.newBufferedWriter(locPath);
