@@ -38,7 +38,9 @@ class MyProducer implements Runnable {
         for(String num : nums) {
             try {
                 System.out.println(color + "Adding..." + num);
-                buffer.add(num);
+                synchronized (buffer) {
+                    buffer.add(num);
+                }
 
                 Thread.sleep(random.nextInt(1000));
             } catch(InterruptedException e) {
@@ -47,7 +49,9 @@ class MyProducer implements Runnable {
         }
 
         System.out.println(color + "Adding EOF and exiting...");
-        buffer.add("EOF");
+        synchronized (buffer) {
+            buffer.add("EOF");
+        }
     }
 }
 
@@ -64,14 +68,17 @@ class MyConsumer implements Runnable {
     @Override
     public void run() {
         while(true) {
-            if(buffer.isEmpty()) {
-                continue;
-            }
-            if(buffer.get(0).equals(EOF)) {
-                System.out.println(color+"Exiting");
-                break;
-            } else {
-                System.out.println(color + "Removed " + buffer.remove(0));
+            // we don't the producer/consumer to change the arraylist once a consumer thread has checked to see whether it is empty; so we want all method calls to the ArrayList to happen as a unit and at once in this `critical section`.
+            synchronized (buffer) {
+                if(buffer.isEmpty()) {
+                    continue;
+                }
+                if(buffer.get(0).equals(EOF)) {
+                    System.out.println(color+"Exiting");
+                    break;
+                } else {
+                    System.out.println(color + "Removed " + buffer.remove(0));
+                }
             }
         }
     }
