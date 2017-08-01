@@ -1,8 +1,10 @@
 package com.ekotwick;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantLock;
@@ -13,15 +15,15 @@ public class Main {
     public static final String EOF = "EOF";
 
     public static void main(String[] args) {
-        List<String> buffer = new ArrayList<>();
-        ReentrantLock bufferLock = new ReentrantLock();
+        // the ArrayBlockingQueue doesn't require the bufferLock;
+        ArrayBlockingQueue<String> buffer = new ArrayBlockingQueue<String>(6); // like other Arrays, their capacity has to be declared in the beginning
 
         ExecutorService executorService = Executors.newFixedThreadPool(3);
         // once we create this, we need to change how we create the new threads
 
-        MyProducer producer = new MyProducer(buffer, ThreadColor.ANSI_GREEN, bufferLock);
-        MyConsumer consumer1 = new MyConsumer(buffer, ThreadColor.ANSI_PURPLE, bufferLock);
-        MyConsumer consumer2 = new MyConsumer(buffer, ThreadColor.ANSI_BLUE, bufferLock);
+        MyProducer producer = new MyProducer(buffer, ThreadColor.ANSI_GREEN);
+        MyConsumer consumer1 = new MyConsumer(buffer, ThreadColor.ANSI_PURPLE);
+        MyConsumer consumer2 = new MyConsumer(buffer, ThreadColor.ANSI_BLUE);
 
         executorService.execute(producer);
         executorService.execute(consumer1);
@@ -32,14 +34,12 @@ public class Main {
 }
 
 class MyProducer implements Runnable {
-    private List<String> buffer;
+    private ArrayBlockingQueue<String> buffer;
     private String color;
-    private ReentrantLock bufferLock;
 
-    public MyProducer(List<String> buffer, String color, ReentrantLock bufferLock) {
+    public MyProducer(ArrayBlockingQueue<String> buffer, String color) {
         this.buffer = buffer;
         this.color = color;
-        this.bufferLock = bufferLock;
     }
 
     @Override
@@ -50,12 +50,7 @@ class MyProducer implements Runnable {
         for(String num : nums) {
             try {
                 System.out.println(color + "Adding..." + num);
-                bufferLock.lock();
-                try {
-                    buffer.add(num);
-                } finally {
-                    bufferLock.unlock();
-                }
+                buffer.put(num);
                 Thread.sleep(random.nextInt(1000));
             } catch(InterruptedException e) {
                 System.out.println("producer was interrupted");
@@ -63,24 +58,20 @@ class MyProducer implements Runnable {
         }
 
         System.out.println(color + "Adding EOF and exiting...");
-        bufferLock.lock();
         try {
-            buffer.add("EOF");
-        } finally {
-            bufferLock.unlock();
+            buffer.put("EOF"); // this is a threadSafe method (it's ArrayLists that aren't threadSafe)
+        } catch (InterruptedException e) {
         }
     }
 }
 
 class MyConsumer implements Runnable {
-    private List<String> buffer;
+    private ArrayBlockingQueue<String> buffer;
     private String color;
-    private ReentrantLock bufferLock;
 
-    public MyConsumer(List<String> buffer, String color, ReentrantLock bufferLock) {
+    public MyConsumer(ArrayBlockingQueue<String> buffer, String color) {
         this.buffer = buffer;
         this.color = color;
-        this.bufferLock = bufferLock;
     }
 
     // this is a simplification: typically, we would have the method wait for a notifaction rather than run continuously like this; but this is a contrived example and designed for simplicity's sake
@@ -88,19 +79,19 @@ class MyConsumer implements Runnable {
     public void run() {
         while(true) {
             // we don't the producer/consumer to change the arraylist once a consumer thread has checked to see whether it is empty; so we want all method calls to the ArrayList to happen as a unit and at once in this `critical section`.
-            bufferLock.lock();
-            try {
-                if(buffer.isEmpty()) {// we need other `bufferLock.lock()` calls here; if the buffer is empty, we hit the `continue` to the next loop, where another `lock()` call is made, and so on with no releases of the lock; same with the `break`: we have locked the lock without ever releasing it.
-                    continue;
+            synchronized (buffer) { // we have added the synchonized block here, because it can still happen that a method checks to see if the thing is empty, gets suspended, and then calls an operation that will now throw an exception, because some other method has modified the source object
+                try {
+                    if(buffer.isEmpty()) {// we need other `bufferLock.lock()` calls here; if the buffer is empty, we hit the `continue` to the next loop, where another `lock()` call is made, and so on with no releases of the lock; same with the `break`: we have locked the lock without ever releasing it.
+                        continue;
+                    }
+                    if(buffer.peek().equals(EOF)) {
+                        System.out.println(color+"Exiting");
+                        break;
+                    } else {
+                        System.out.println(color + "Removed " + buffer.take());
+                    }
+                } catch (InterruptedException e) {
                 }
-                if(buffer.get(0).equals(EOF)) {
-                    System.out.println(color+"Exiting");
-                    break;
-                } else {
-                    System.out.println(color + "Removed " + buffer.remove(0));
-                }
-            } finally {
-                bufferLock.unlock();
             }
         }
     }
