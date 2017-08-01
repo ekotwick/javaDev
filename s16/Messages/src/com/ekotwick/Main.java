@@ -19,19 +19,29 @@ class Message {
     // loop until there is a message to read, then read it
     public synchronized  String read() {
         while(empty) {
+            try {
+                wait();
+            } catch(InterruptedException e) {
 
+            }
         }
         empty = true;
+        notifyAll();
         return message;
     }
 
     // loop until there is no message to read, then write one
     public synchronized void write(String message) {
         while(!empty) {
+            try {
+                wait();
+            } catch(InterruptedException e) {
 
+            }
         }
         empty = false;
         this.message = message;
+        notifyAll();
     }
 }
 
